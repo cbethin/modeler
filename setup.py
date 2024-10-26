@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='modeler',
-    version='0.1.3',
+    version='0.1.4',
     description='A library for fine-tuning and serving models like Flan-T5, including integration with OpenAI GPT models.',
     author='Your Name',
     author_email='your.email@example.com',
@@ -16,7 +16,8 @@ setup(
         'scikit-learn>=0.24.0',
         'psutil>=5.8.0',
         'Flask>=2.0.0',
-        'openai>=0.10.2'
+        'openai>=0.10.2',
+        'ipywidgets>=7.0.0'
     ],
     entry_points={
         'console_scripts': [
