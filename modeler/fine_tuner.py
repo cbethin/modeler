@@ -1,7 +1,6 @@
 import torch
 from transformers import T5Tokenizer, T5ForConditionalGeneration, TrainingArguments, DataCollatorForSeq2Seq
 from transformers import Trainer
-from transformers import ProgressCallback
 from datasets import Dataset
 from sklearn.model_selection import train_test_split
 import pandas as pd
@@ -61,8 +60,7 @@ class FlanT5FineTuner:
             args=training_args,
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
-            data_collator=data_collator,
-            callbacks=[ProgressCallback]
+            data_collator=data_collator
         )
 
         # Train the model and measure training time and peak memory usage
