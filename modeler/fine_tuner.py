@@ -63,17 +63,6 @@ class FlanT5FineTuner:
             data_collator=data_collator
         )
 
-        # Function to monitor memory usage periodically
-        max_memory = [0]
-        process = psutil.Process()
-        stop_event = threading.Event()
-
-        def monitor_memory():
-            while not stop_event.is_set():
-                current_memory = process.memory_info().rss / (1024 * 1024)  # Convert to MB
-                max_memory[0] = max(max_memory[0], current_memory)
-                time.sleep(1)  # Check memory every second
-
         # Train the model and measure training time and peak memory usage
         print("--- Starting Training ---\n")
         param_trainer.train()
