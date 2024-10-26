@@ -9,7 +9,7 @@ class ModelRunner:
             self.is_local_model = True
         elif base_url and api_key:
             self.model_name = model
-            self.client = openai.ChatCompletion(api_base=base_url, api_key=api_key)
+            self.client = openai.OpenAI(base_url=base_url, api_key=api_key)
             self.is_local_model = False
         else:
             raise ValueError("Either fine_tuner or base_url and api_key must be provided.")
@@ -26,5 +26,5 @@ class ModelRunner:
             decoded_output = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
             return {'choices': [{'message': {'role': 'assistant', 'content': decoded_output}}]}
         else:
-            response = self.client.create(model=self.model_name, messages=messages)
+            response = self.client.chat.completions.create(model=self.model_name, messages=messages)
             return response
