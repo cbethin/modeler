@@ -4,9 +4,6 @@ from transformers import Trainer
 from datasets import Dataset
 from sklearn.model_selection import train_test_split
 import pandas as pd
-import time
-import psutil
-import threading
 
 class FlanT5FineTuner:
     def __init__(self, model_name="google/flan-t5-small", device=None):
@@ -78,24 +75,8 @@ class FlanT5FineTuner:
                 time.sleep(1)  # Check memory every second
 
         # Train the model and measure training time and peak memory usage
-        print("\n--- Starting Training ---\n")
-        start_time = time.time()
-        memory_thread = threading.Thread(target=monitor_memory)
-        memory_thread.start()
-
+        print("--- Starting Training ---\n")
         param_trainer.train()
-
-        stop_event.set()
-        memory_thread.join()
-        end_time = time.time()
-
-        # Calculate time taken
-        time_taken = end_time - start_time  # In seconds
-
-        # Print stats
-        print("\n--- Training Stats ---")
-        print(f"Peak memory used: {max_memory[0]:.2f} MB")
-        print(f"Time taken: {time_taken:.2f} seconds")
         
     def send_message(self, test_prompts):
         self.model.eval()
