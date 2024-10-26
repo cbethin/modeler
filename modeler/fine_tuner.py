@@ -61,7 +61,7 @@ class FlanT5FineTuner:
             args=training_args,
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
-            data_collator=data_collator
+            data_collator=data_collator,
             callbacks=[ProgressCallback]
         )
 
