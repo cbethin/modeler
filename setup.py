@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='modeler',
-    version='0.1.5',
+    version='0.1.6',
     description='A library for fine-tuning and serving models like Flan-T5, including integration with OpenAI GPT models.',
     author='Your Name',
     author_email='your.email@example.com',
