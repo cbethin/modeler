@@ -1,21 +1,21 @@
 import torch
-from transformers import T5Tokenizer, T5ForConditionalGeneration, TrainingArguments, DataCollatorForSeq2Seq
-from transformers import Trainer
+from transformers import TrainingArguments, DataCollatorForSeq2Seq, Trainer, AutoModelForSeq2SeqLM, AutoTokenizer
 from datasets import Dataset
 from sklearn.model_selection import train_test_split
 import pandas as pd
+import os
 
-class FlanT5FineTuner:
-    def __init__(self, model_name="google/flan-t5-small", device=None):
+class FineTuner:
+    def __init__(self, model, tokenizer, device=None):
         # Set device
         self.device = torch.device('mps') if torch.backends.mps.is_available() else torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu') if device is None else device
 
-        # Load the model and tokenizer
-        self.model = T5ForConditionalGeneration.from_pretrained(model_name)
-        self.tokenizer = T5Tokenizer.from_pretrained(model_name, legacy=False)
+        # Assign the model and tokenizer
+        self.model = model
+        self.tokenizer = tokenizer
         self.model.to(self.device)
 
-        # Resize model embeddings
+        # Resize model embeddings if additional special tokens are provided
         self.tokenizer.add_special_tokens({'additional_special_tokens': ['{', '}']})
         self.model.resize_token_embeddings(len(self.tokenizer))
 
@@ -69,29 +69,31 @@ class FlanT5FineTuner:
         
     def send_message(self, test_prompts):
         self.model.eval()
+        return_outputs = []
         for prompt in test_prompts:
             inputs = self.tokenizer(prompt, return_tensors="pt", max_length=64, truncation=True).to(self.device)
             outputs = self.model.generate(**inputs)
             decoded_output = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            print(f"Q: {prompt}\nA: {decoded_output}\n")
+            return_outputs.append(f"{decoded_output}")
+        return return_outputs
             
     def save(self, save_path):
         # Save the model and tokenizer
-        self.model.save_pretrained(save_path)
-        self.tokenizer.save_pretrained(save_path)
+        model_path = os.path.join(save_path, 'model')
+        tokenizer_path = os.path.join(save_path, 'tokenizer')
+        self.model.save_pretrained(model_path)
+        self.tokenizer.save_pretrained(tokenizer_path)
         
     @staticmethod
-    def load(model_path, device=None):
+    def load(save_path, device=None):
         # Load the fine-tuned model and tokenizer
-        model = T5ForConditionalGeneration.from_pretrained(model_path)
-        tokenizer = T5Tokenizer.from_pretrained(model_path, legacy=False)
+        model_path = os.path.join(save_path, 'model')
+        tokenizer_path = os.path.join(save_path, 'tokenizer')
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_path)
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
         device = torch.device('mps') if torch.backends.mps.is_available() else torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu') if device is None else device
         model.to(device)
 
         # Create a fine tuner instance with loaded model and tokenizer
-        fine_tuner = FlanT5FineTuner()
-        fine_tuner.model = model
-        fine_tuner.tokenizer = tokenizer
-        fine_tuner.device = device
-
+        fine_tuner = FineTuner(model, tokenizer, device=device)
         return fine_tuner
