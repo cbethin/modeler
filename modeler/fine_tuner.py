@@ -19,8 +19,8 @@ class FineTuner:
         self.tokenizer.add_special_tokens({'additional_special_tokens': ['{', '}']})
         self.model.resize_token_embeddings(len(self.tokenizer))
 
-    def fine_tune(self, training_data, epochs=5, batch_size=16, learning_rate=3e-4, weight_decay=0.01):
-        train_df, eval_df = train_test_split(training_data, test_size=0.2, random_state=42)
+    def fine_tune(self, training_data, epochs=5, batch_size=16, learning_rate=3e-4, weight_decay=0.01, stratify=None, split=0.2):
+        train_df, eval_df = train_test_split(training_data, test_size=split, random_state=42, stratify=stratify,)
 
         # Convert to `Dataset`
         train_dataset = Dataset.from_pandas(train_df)
@@ -48,7 +48,8 @@ class FineTuner:
             weight_decay=weight_decay,
             eval_accumulation_steps=10,
             logging_dir="./param_logs",
-            logging_strategy="epoch"
+            logging_strategy="epoch",
+            report_to="none"
         )
 
         # Use DataCollatorForSeq2Seq for sequence-to-sequence tasks
