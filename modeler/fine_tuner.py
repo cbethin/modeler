@@ -28,8 +28,8 @@ class FineTuner:
 
         # Tokenize both train and evaluation datasets
         def tokenize_function(examples):
-            model_inputs = self.tokenizer(examples["prompt"], max_length=64, padding="max_length", truncation=True)
-            labels = self.tokenizer(examples["response"], max_length=64, padding="max_length", truncation=True)
+            model_inputs = self.tokenizer(examples["prompt"])
+            labels = self.tokenizer(examples["response"])
             model_inputs["labels"] = labels["input_ids"]
             return model_inputs
 
@@ -72,7 +72,7 @@ class FineTuner:
         self.model.eval()
         return_outputs = []
         for prompt in test_prompts:
-            inputs = self.tokenizer(prompt, return_tensors="pt", max_length=64, truncation=True).to(self.device)
+            inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
             outputs = self.model.generate(**inputs)
             decoded_output = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
             return_outputs.append(f"{decoded_output}")
