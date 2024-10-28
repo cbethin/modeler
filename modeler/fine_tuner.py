@@ -68,13 +68,13 @@ class FineTuner:
         print("--- Starting Training ---\n")
         param_trainer.train()
         
-    def send_message(self, test_prompts):
+    def send_message(self, test_prompts, skip_special_tokens = False):
         self.model.eval()
         return_outputs = []
         for prompt in test_prompts:
             inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
             outputs = self.model.generate(**inputs)
-            decoded_output = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            decoded_output = self.tokenizer.decode(outputs[0], skip_special_tokens=skip_special_tokens)
             return_outputs.append(f"{decoded_output}")
         return return_outputs
             
