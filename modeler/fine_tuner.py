@@ -1,8 +1,7 @@
 import torch
-from transformers import TrainingArguments, DataCollatorForSeq2Seq, Trainer, AutoModelForSeq2SeqLM, AutoTokenizer
+from transformers import TrainingArguments, DataCollatorWithPadding, Trainer, AutoModelForSeq2SeqLM, AutoTokenizer
 from datasets import Dataset
 from sklearn.model_selection import train_test_split
-import pandas as pd
 import os
 
 class FineTuner:
@@ -19,8 +18,9 @@ class FineTuner:
         self.tokenizer.add_special_tokens({'additional_special_tokens': ['{', '}']})
         self.model.resize_token_embeddings(len(self.tokenizer))
 
-    def fine_tune(self, training_data, epochs=5, batch_size=16, learning_rate=3e-4, weight_decay=0.01, stratify=None, split=0.2):
-        train_df, eval_df = train_test_split(training_data, test_size=split, random_state=42, stratify=stratify,)
+    def fine_tune(self, training_data, epochs=5, batch_size=16, learning_rate=3e-4, weight_decay=0.01, stratify=None, max_length=None, split=0.2):
+        # Split data
+        train_df, eval_df = train_test_split(training_data, test_size=split, random_state=42, stratify=stratify)
 
         # Convert to `Dataset`
         train_dataset = Dataset.from_pandas(train_df)
@@ -28,11 +28,22 @@ class FineTuner:
 
         # Tokenize both train and evaluation datasets
         def tokenize_function(examples):
-            model_inputs = self.tokenizer(examples["prompt"])
-            labels = self.tokenizer(examples["response"])
+            model_inputs = self.tokenizer(
+                examples["prompt"], 
+                max_length=max_length, 
+                truncation=True, 
+                padding="max_length"  # Ensures uniform length across all examples
+            )
+            labels = self.tokenizer(
+                examples["response"], 
+                max_length=max_length, 
+                truncation=True, 
+                padding="max_length"
+            )
             model_inputs["labels"] = labels["input_ids"]
             return model_inputs
 
+        # Apply tokenization in batches
         train_dataset = train_dataset.map(tokenize_function, batched=True)
         eval_dataset = eval_dataset.map(tokenize_function, batched=True)
 
@@ -52,10 +63,10 @@ class FineTuner:
             report_to="none"
         )
 
-        # Use DataCollatorForSeq2Seq for sequence-to-sequence tasks
-        data_collator = DataCollatorForSeq2Seq(self.tokenizer, model=self.model, padding=True)
+        # Use DataCollatorWithPadding for padding dynamically
+        data_collator = DataCollatorWithPadding(tokenizer=self.tokenizer)
 
-        # Use the default Trainer
+        # Initialize the Trainer
         param_trainer = Trainer(
             model=self.model,
             args=training_args,
@@ -64,18 +75,19 @@ class FineTuner:
             data_collator=data_collator
         )
 
-        # Train the model and measure training time and peak memory usage
+        # Train the model
         print("--- Starting Training ---\n")
         param_trainer.train()
-        
-    def send_message(self, test_prompts, skip_special_tokens = False):
+
+    def send_message(self, test_prompts, skip_special_tokens=False):
         self.model.eval()
         return_outputs = []
         for prompt in test_prompts:
             inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+            inputs = {key: value.to(self.device) for key, value in inputs.items()}  # Ensure tensors are moved to the device
             outputs = self.model.generate(**inputs)
             decoded_output = self.tokenizer.decode(outputs[0], skip_special_tokens=skip_special_tokens)
-            return_outputs.append(f"{decoded_output}")
+            return_outputs.append(decoded_output)
         return return_outputs
             
     def save(self, save_path):
@@ -95,6 +107,6 @@ class FineTuner:
         device = torch.device('mps') if torch.backends.mps.is_available() else torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu') if device is None else device
         model.to(device)
 
-        # Create a fine tuner instance with loaded model and tokenizer
+        # Create a FineTuner instance with the loaded model and tokenizer
         fine_tuner = FineTuner(model, tokenizer, device=device)
         return fine_tuner
